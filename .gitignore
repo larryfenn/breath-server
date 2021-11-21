@@ -12,5 +12,4 @@ htmlcov/
 dist/
 build/
 *.egg-info/
-
-flaskr/data.db
+*.sqlite
