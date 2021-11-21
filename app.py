@@ -162,6 +162,6 @@ Current relay state: {relay_state}
     <label for="no_override">Override Relay Off</label><br>
     <input type="radio" id="override_on" name="override" value="2" {override_on}>
     <label for="no_override">Override Relay On</label><br>
-    <input type="submit">
+    <input type="submit" value="Submit">
 </form>'''
     return page
