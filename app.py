@@ -13,7 +13,7 @@ from flask import g
 from flask import Response
 import sqlite3
 
-DATABASE = 'data.sqlite'
+DATABASE = 'data/data.sqlite'
 app = Flask(__name__)
 
 def create_app():
