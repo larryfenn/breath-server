@@ -16,6 +16,14 @@ import sqlite3
 DATABASE = 'data.sqlite'
 app = Flask(__name__)
 
+def create_app():
+    return app
+
+# this will drop all data that might exist in the db
+# for ex. if run like
+# > python3
+# >>> from app import init_db
+# >>> init_db()
 def init_db():
     with app.app_context():
         db = get_db()
