@@ -59,8 +59,25 @@ def sensor():
     if request.method == 'POST':
         if valid_password(request.form['password']):
             sensor_data = dict()
-            sensor_data['pm25'] = int(request.form['pm25'])
-            sensor_data['co2'] = int(request.form['co2'])
+            sensor_data['scd_co2'] = float(request.form['scd_co2'])
+            sensor_data['scd_temp'] = float(request.form['scd_temp'])
+            sensor_data['scd_hum'] = float(request.form['scd_hum'])
+            sensor_data['bme_temp'] = float(request.form['bme_temp'])
+            sensor_data['bme_hum'] = float(request.form['bme_hum'])
+            sensor_data['bme_pressure'] = float(request.form['bme_pressure'])
+            sensor_data['bme_altitude'] = float(request.form['bme_altitude'])
+            sensor_data['pm10_std'] = int(request.form['pm10_std'])
+            sensor_data['pm25_std'] = int(request.form['pm25_std'])
+            sensor_data['pm100_std'] = int(request.form['pm100_std'])
+            sensor_data['pm10_env'] = int(request.form['pm10_env'])
+            sensor_data['pm25_env'] = int(request.form['pm25_env'])
+            sensor_data['pm100_env'] = int(request.form['pm100_env'])
+            sensor_data['03um'] = int(request.form['03um'])
+            sensor_data['05um'] = int(request.form['05um'])
+            sensor_data['10um'] = int(request.form['10um'])
+            sensor_data['25um'] = int(request.form['25um'])
+            sensor_data['50um'] = int(request.form['50um'])
+            sensor_data['100um'] = int(request.form['100um'])
             return log_data(sensor_data)
         else:
             return Response(response = "Wrong password", status = "401")
@@ -71,13 +88,30 @@ def valid_password(password):
 
 def log_data(data):
     db = get_db()
-    print(data['pm25'])
     db.execute(
-        'INSERT INTO air_quality_log (pm25, co2) \
-         VALUES (?, ?)',
+        'INSERT INTO air_quality_log (scd_co2, scd_temp, scd_hum, bme_temp, bme_gas, bme_hum, bme_pressure, bme_altitude, pm10_std, pm25_std, pm100_std, pm10_env, pm25_env, pm100_env, 03um, 05um, 10um, 25um, 50um, 100um) \
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (
-            data['pm25'],
-            data['co2']
+            data['scd_co2'],
+            data['scd_temp'],
+            data['scd_hum'],
+            data['bme_temp'],
+            data['bme_gas'],
+            data['bme_hum'],
+            data['bme_pressure'],
+            data['bme_altitude'],
+            data['pm10_std'],
+            data['pm25_std'],
+            data['pm100_std'],
+            data['pm10_env'],
+            data['pm25_env'],
+            data['pm100_env'],
+            data['03um'],
+            data['05um'],
+            data['10um'],
+            data['25um'],
+            data['50um'],
+            data['100um']
         ))
     db.commit()
     set_relay_state(data)
@@ -92,7 +126,7 @@ def set_relay_state(data):
         return
     # Relay on logic goes here:
     relay_on = False
-    if data['pm25'] > 5:
+    if data['pm25_std'] > 5:
         relay_on = True
 
 
@@ -155,9 +189,9 @@ def control():
     relay_state = "On" if state['relay_state'] == 1 else "Off"
 
     sensor_data = query_db(
-        'SELECT max(time) as time, pm25, co2 \
+        'SELECT max(time) as time, pm25_std, scd_co2 \
            FROM air_quality_log', one = True)
-    data_formatted = f"{sensor_data['time']} PM 2.5: {sensor_data['pm25']} CO2: {sensor_data['co2']}"
+    data_formatted = f"{sensor_data['time']} PM 2.5: {sensor_data['pm25_std']} CO2: {sensor_data['scd_co2']}"
     no_override = "checked" if override == 0 else ""
     override_off = "checked" if override == 1 else ""
     override_on = "checked" if override == 2 else ""
