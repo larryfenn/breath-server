@@ -63,6 +63,7 @@ def sensor():
             sensor_data['scd_temp'] = float(request.form['scd_temp'])
             sensor_data['scd_hum'] = float(request.form['scd_hum'])
             sensor_data['bme_temp'] = float(request.form['bme_temp'])
+            sensor_data['bme_gas'] = float(request.form['bme_gas'])
             sensor_data['bme_hum'] = float(request.form['bme_hum'])
             sensor_data['bme_pressure'] = float(request.form['bme_pressure'])
             sensor_data['bme_altitude'] = float(request.form['bme_altitude'])
