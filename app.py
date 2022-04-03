@@ -72,12 +72,12 @@ def sensor():
             sensor_data['pm10_env'] = int(request.form['pm10_env'])
             sensor_data['pm25_env'] = int(request.form['pm25_env'])
             sensor_data['pm100_env'] = int(request.form['pm100_env'])
-            sensor_data['03um'] = int(request.form['03um'])
-            sensor_data['05um'] = int(request.form['05um'])
-            sensor_data['10um'] = int(request.form['10um'])
-            sensor_data['25um'] = int(request.form['25um'])
-            sensor_data['50um'] = int(request.form['50um'])
-            sensor_data['100um'] = int(request.form['100um'])
+            sensor_data['aq_03um'] = int(request.form['aq_03um'])
+            sensor_data['aq_05um'] = int(request.form['aq_05um'])
+            sensor_data['aq_10um'] = int(request.form['aq_10um'])
+            sensor_data['aq_25um'] = int(request.form['aq_25um'])
+            sensor_data['aq_50um'] = int(request.form['aq_50um'])
+            sensor_data['aq_100um'] = int(request.form['aq_100um'])
             return log_data(sensor_data)
         else:
             return Response(response = "Wrong password", status = "401")
@@ -89,7 +89,7 @@ def valid_password(password):
 def log_data(data):
     db = get_db()
     db.execute(
-        'INSERT INTO air_quality_log (scd_co2, scd_temp, scd_hum, bme_temp, bme_gas, bme_hum, bme_pressure, bme_altitude, pm10_std, pm25_std, pm100_std, pm10_env, pm25_env, pm100_env, 03um, 05um, 10um, 25um, 50um, 100um) \
+        'INSERT INTO air_quality_log (scd_co2, scd_temp, scd_hum, bme_temp, bme_gas, bme_hum, bme_pressure, bme_altitude, pm10_std, pm25_std, pm100_std, pm10_env, pm25_env, pm100_env, aq_03um, aq_05um, aq_10um, aq_25um, aq_50um, aq_100um) \
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (
             data['scd_co2'],
@@ -106,12 +106,12 @@ def log_data(data):
             data['pm10_env'],
             data['pm25_env'],
             data['pm100_env'],
-            data['03um'],
-            data['05um'],
-            data['10um'],
-            data['25um'],
-            data['50um'],
-            data['100um']
+            data['aq_03um'],
+            data['aq_05um'],
+            data['aq_10um'],
+            data['aq_25um'],
+            data['aq_50um'],
+            data['aq_100um']
         ))
     db.commit()
     set_relay_state(data)

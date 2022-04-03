@@ -23,12 +23,12 @@ CREATE TABLE air_quality_log (
   pm10_env INT,
   pm25_env INT,
   pm100_env INT,
-  03um INT,
-  05um INT,
-  10um INT,
-  25um INT,
-  50um INT,
-  100um INT
+  aq_03um INT,
+  aq_05um INT,
+  aq_10um INT,
+  aq_25um INT,
+  aq_50um INT,
+  aq_100um INT
 );
 
 INSERT INTO state (override, relay_state)
