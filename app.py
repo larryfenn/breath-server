@@ -7,7 +7,7 @@
 # favicon
 # what to do with title page
 
-from flask import Flask, send_file
+from flask import Flask, Response
 from flask import request
 from flask import g
 from flask import Response
@@ -275,7 +275,7 @@ def plot_response(metric):
     ax.xaxis.set_major_formatter(DateFormatter('%H:%M', tz = timezone("America/New_York")))
     img_bytes = BytesIO()
     FigureCanvas(fig).print_png(img_bytes)
-    return send_file(img_bytes.getvalue(), mimetype='image/png')
+    return Response(img_bytes.getvalue(), mimetype='image/png')
 
 def nocache(response):
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
