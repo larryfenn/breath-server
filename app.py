@@ -14,6 +14,12 @@ from flask import Response
 import sqlite3
 from datetime import datetime
 from pytz import timezone
+from io import BytesIO
+import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from matplotlib.dates import DateFormatter
 
 DATABASE = 'data/data.sqlite'
 app = Flask(__name__)
