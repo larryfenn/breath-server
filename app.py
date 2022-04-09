@@ -74,12 +74,6 @@ def frontpage():
 <img src="/scd_hum.png"/>
 </div>
 <div>
-<img src="/bme_pressure.png"/>
-</div>
-<div>
-<img src="/bme_gas.png"/>
-</div>
-<div>
 <img src="/pm25_env.png"/>
 </div>
 </body>
