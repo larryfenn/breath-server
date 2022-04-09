@@ -16,7 +16,7 @@ from datetime import datetime
 from pytz import timezone
 from io import BytesIO
 import pandas as pd
-import matplotlib.backends.backend_agg as backend
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.dates import DateFormatter
 
@@ -269,15 +269,13 @@ def plot_response(metric):
     data['time'] = pd.to_datetime(data['time'], utc=True)
 
     fig = Figure()
-    canvas = backend.FigureCanvas(fig)
     ax = data.plot(x = 'time', y = metric)
     ax.set_xlabel("")
     ax.set_ylabel("")
     ax.xaxis.set_major_formatter(DateFormatter('%H:%M', tz = timezone("America/New_York")))
     img_bytes = BytesIO()
-    canvas.print_png(img_bytes)
-    img_bytes.seek(0)
-    return send_file(img_bytes, mimetype='image/png')
+    FigureCanvas(fig).print_png(img_bytes)
+    return send_file(img_bytes.getvalue(), mimetype='image/png')
 
 def nocache(response):
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
