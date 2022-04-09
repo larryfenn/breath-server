@@ -16,9 +16,8 @@ from datetime import datetime
 from pytz import timezone
 from io import BytesIO
 import pandas as pd
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+import matplotlib.backends.backend_agg as backend
+from matplotlib.figure import Figure
 from matplotlib.dates import DateFormatter
 
 DATABASE = 'data/data.sqlite'
@@ -74,7 +73,22 @@ def frontpage():
 <img src="/scd_hum.png"/>
 </div>
 <div>
+<img src="/bme_temp.png"/>
+</div>
+<div>
+<img src="/bme_hum.png"/>
+</div>
+<div>
+<img src="/bme_pressure.png"/>
+</div>
+<div>
+<img src="/bme_gas.png"/>
+</div>
+<div>
 <img src="/pm25_env.png"/>
+</div>
+<div>
+<img src="/aq_25um.png"/>
 </div>
 </body>
 </html>
@@ -254,14 +268,14 @@ def plot_response(metric):
     data = pd.read_sql_query(f"SELECT time, {metric} FROM air_quality_log WHERE CAST(strftime('%S', time) AS INTEGER) < 5 AND time > datetime('now', '-1 day')", con)
     data['time'] = pd.to_datetime(data['time'], utc=True)
 
-    fig = plt.figure()
+    fig = Figure()
+    canvas = backend.FigureCanvas(fig)
     ax = data.plot(x = 'time', y = metric)
     ax.set_xlabel("")
     ax.set_ylabel("")
     ax.xaxis.set_major_formatter(DateFormatter('%H:%M', tz = timezone("America/New_York")))
     img_bytes = BytesIO()
-    plt.savefig(img_bytes)
-    plt.close(fig)
+    canvas.print_png(img_bytes)
     img_bytes.seek(0)
     return send_file(img_bytes, mimetype='image/png')
 
