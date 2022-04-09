@@ -7,7 +7,7 @@
 # favicon
 # what to do with title page
 
-from flask import Flask
+from flask import Flask, send_file
 from flask import request
 from flask import g
 from flask import Response
@@ -53,8 +53,17 @@ def close_connection(exception):
         db.close()
 
 @app.route("/")
-def hello_world():
-    return ""
+def frontpage():
+    return """
+<!doctype html>
+<head><title>Breath Server</title></head>
+<body>
+<div>
+<img src="/scd_co2.png"/>
+</div>
+</body>
+</html>
+"""
 
 @app.route("/sensor", methods=['GET', 'POST'])
 def sensor():
@@ -189,3 +198,27 @@ Current relay state: {relay_state}
     <input type="submit" value="Submit">
 </form>'''
     return page
+
+@app.route("/scd_co2.png")
+def scd_co2():
+    return nocache(plot_response("scd_co2"))
+
+def plot_response(metric):
+    con = sqlite3.connect("data/data.sqlite")
+    data = pd.read_sql_query(f"SELECT time, {metric} FROM air_quality_log WHERE CAST(strftime('%S', time) AS INTEGER) < 5 AND time > datetime('now', '-1 day')", con)
+    data['time'] = pd.to_datetime(data['time'], utc=True)
+
+    fig = plt.figure()
+    ax = data.plot(x = 'time', y = metric)
+    ax.set_xlabel("")
+    ax.set_ylabel("")
+    ax.xaxis.set_major_formatter(DateFormatter('%H:%M', tz = timezone("America/New_York")))
+    img_bytes = BytesIO()
+    plt.savefig(img_bytes)
+    plt.close(fig)
+    img_bytes.seek(0)
+    return send_file(img_bytes, mimetype='image/png')
+
+def nocache(response):
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    return response
