@@ -269,7 +269,8 @@ def plot_response(metric):
     data['time'] = pd.to_datetime(data['time'], utc=True)
 
     fig = Figure()
-    ax = data.plot(x = 'time', y = metric)
+    ax = fig.add_subplot()
+    data.plot(x = 'time', y = metric, ax = ax)
     ax.set_xlabel("")
     ax.set_ylabel("")
     ax.xaxis.set_major_formatter(DateFormatter('%H:%M', tz = timezone("America/New_York")))
