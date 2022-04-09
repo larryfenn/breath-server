@@ -67,6 +67,30 @@ def frontpage():
 <div>
 <img src="/scd_co2.png"/>
 </div>
+<div>
+<img src="/scd_temp.png"/>
+</div>
+<div>
+<img src="/scd_hum.png"/>
+</div>
+<div>
+<img src="/bme_temp.png"/>
+</div>
+<div>
+<img src="/bme_hum.png"/>
+</div>
+<div>
+<img src="/bme_pressure.png"/>
+</div>
+<div>
+<img src="/bme_gas.png"/>
+</div>
+<div>
+<img src="/pm25_env.png"/>
+</div>
+<div>
+<img src="/aq_25um.png"/>
+</div>
 </body>
 </html>
 """
@@ -124,7 +148,6 @@ def set_relay_state(data):
     relay_on = False
     if data['pm25_env'] > 5:
         relay_on = True
-
 
 
     # End relay logic
@@ -208,6 +231,38 @@ Current relay state: {relay_state}
 @app.route("/scd_co2.png")
 def scd_co2():
     return nocache(plot_response("scd_co2"))
+
+@app.route("/scd_temp.png")
+def scd_temp():
+    return nocache(plot_response("scd_temp"))
+
+@app.route("/scd_hum.png")
+def scd_hum():
+    return nocache(plot_response("scd_hum"))
+
+@app.route("/bme_temp.png")
+def bme_temp():
+    return nocache(plot_response("bme_temp"))
+
+@app.route("/bme_gas.png")
+def bme_gas():
+    return nocache(plot_response("bme_gas"))
+
+@app.route("/bme_hum.png")
+def bme_hum():
+    return nocache(plot_response("bme_hum"))
+
+@app.route("/bme_pressure.png")
+def bme_pressure():
+    return nocache(plot_response("bme_pressure"))
+
+@app.route("/pm25_env.png")
+def pm25_env():
+    return nocache(plot_response("pm25_env"))
+
+@app.route("/aq_25um.png")
+def aq_25um():
+    return nocache(plot_response("aq_25um"))
 
 def plot_response(metric):
     con = sqlite3.connect("data/data.sqlite")
