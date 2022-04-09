@@ -12,6 +12,8 @@ from flask import request
 from flask import g
 from flask import Response
 import sqlite3
+from datetime import datetime
+from pytz import timezone
 
 DATABASE = 'data/data.sqlite'
 app = Flask(__name__)
@@ -66,19 +68,8 @@ def sensor():
             sensor_data['bme_gas'] = float(request.form['bme_gas'])
             sensor_data['bme_hum'] = float(request.form['bme_hum'])
             sensor_data['bme_pressure'] = float(request.form['bme_pressure'])
-            sensor_data['bme_altitude'] = float(request.form['bme_altitude'])
-            sensor_data['pm10_std'] = int(request.form['pm10_std'])
-            sensor_data['pm25_std'] = int(request.form['pm25_std'])
-            sensor_data['pm100_std'] = int(request.form['pm100_std'])
-            sensor_data['pm10_env'] = int(request.form['pm10_env'])
             sensor_data['pm25_env'] = int(request.form['pm25_env'])
-            sensor_data['pm100_env'] = int(request.form['pm100_env'])
-            sensor_data['aq_03um'] = int(request.form['aq_03um'])
-            sensor_data['aq_05um'] = int(request.form['aq_05um'])
-            sensor_data['aq_10um'] = int(request.form['aq_10um'])
             sensor_data['aq_25um'] = int(request.form['aq_25um'])
-            sensor_data['aq_50um'] = int(request.form['aq_50um'])
-            sensor_data['aq_100um'] = int(request.form['aq_100um'])
             return log_data(sensor_data)
         else:
             return Response(response = "Wrong password", status = "401")
@@ -90,8 +81,8 @@ def valid_password(password):
 def log_data(data):
     db = get_db()
     db.execute(
-        'INSERT INTO air_quality_log (scd_co2, scd_temp, scd_hum, bme_temp, bme_gas, bme_hum, bme_pressure, bme_altitude, pm10_std, pm25_std, pm100_std, pm10_env, pm25_env, pm100_env, aq_03um, aq_05um, aq_10um, aq_25um, aq_50um, aq_100um) \
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO air_quality_log (scd_co2, scd_temp, scd_hum, bme_temp, bme_gas, bme_hum, bme_pressure, pm25_env, aq_25um) \
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (
             data['scd_co2'],
             data['scd_temp'],
@@ -100,19 +91,8 @@ def log_data(data):
             data['bme_gas'],
             data['bme_hum'],
             data['bme_pressure'],
-            data['bme_altitude'],
-            data['pm10_std'],
-            data['pm25_std'],
-            data['pm100_std'],
-            data['pm10_env'],
             data['pm25_env'],
-            data['pm100_env'],
-            data['aq_03um'],
-            data['aq_05um'],
-            data['aq_10um'],
-            data['aq_25um'],
-            data['aq_50um'],
-            data['aq_100um']
+            data['aq_25um']
         ))
     db.commit()
     set_relay_state(data)
@@ -127,7 +107,7 @@ def set_relay_state(data):
         return
     # Relay on logic goes here:
     relay_on = False
-    if data['pm25_std'] > 5:
+    if data['pm25_env'] > 5:
         relay_on = True
 
 
@@ -190,9 +170,10 @@ def control():
     relay_state = "On" if state['relay_state'] == 1 else "Off"
 
     sensor_data = query_db(
-        'SELECT max(time) as time, pm25_std, scd_co2 \
+        'SELECT max(time) as time, pm25_env, scd_co2 \
            FROM air_quality_log', one = True)
-    data_formatted = f"{sensor_data['time']} PM 2.5: {sensor_data['pm25_std']} CO2: {sensor_data['scd_co2']}"
+    time_formatted = timezone('UTC').localize(datetime.strptime(sensor_data['time'], '%Y-%m-%d %H:%M:%S')).astimezone(timezone('America/New_York')).strftime('%Y-%m-%d %H:%M:%S %Z%z')
+    data_formatted = f"{time_formatted} PM 2.5: {sensor_data['pm25_env']} CO2: {sensor_data['scd_co2']}"
     no_override = "checked" if override == 0 else ""
     override_off = "checked" if override == 1 else ""
     override_on = "checked" if override == 2 else ""

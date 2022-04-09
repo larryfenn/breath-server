@@ -16,19 +16,8 @@ CREATE TABLE air_quality_log (
   bme_gas REAL,
   bme_hum REAL,
   bme_pressure REAL,
-  bme_altitude REAL,
-  pm10_std INT,
-  pm25_std INT,
-  pm100_std INT,
-  pm10_env INT,
   pm25_env INT,
-  pm100_env INT,
-  aq_03um INT,
-  aq_05um INT,
-  aq_10um INT,
-  aq_25um INT,
-  aq_50um INT,
-  aq_100um INT
+  aq_25um INT
 );
 
 INSERT INTO state (override, relay_state)
