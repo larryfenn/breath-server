@@ -61,38 +61,37 @@ def close_connection(exception):
 def frontpage():
     return """
 <!doctype html>
-<head><title>Breath Server</title></head>
-<body>
-<div>
-<img src="/scd_co2.png"/>
-</div>
-<div>
-<img src="/scd_temp.png"/>
-</div>
-<div>
-<img src="/scd_hum.png"/>
-</div>
-<div>
-<img src="/bme_temp.png"/>
-</div>
-<div>
-<img src="/bme_hum.png"/>
-</div>
-<div>
-<img src="/bme_pressure.png"/>
-</div>
-<div>
-<img src="/bme_gas.png"/>
-</div>
-<!--
-<div>
-<img src="/pm25_env.png"/>
-</div>
--->
-<div>
-<img src="/aq_25um.png"/>
-</div>
-</body>
+<html>
+  <head>
+    <style>
+     .flex-container {
+       display: flex;
+       flex-wrap: wrap;
+     }
+    </style>
+    <title>
+      Breath Server
+    </title>
+  </head>
+  <body>
+    <div class="flex-container" >
+      <div>
+        <img src="/scd_co2.png"/>
+      </div>
+      <div>
+        <img src="/scd_temp.png"/>
+      </div>
+      <div>
+        <img src="/scd_hum.png"/>
+      </div>
+      <div>
+        <img src="/pm25_env.png"/>
+      </div>
+      <div>
+        <img src="/aq_25um.png"/>
+      </div>
+    </div>
+  </body>
 </html>
 """
 
@@ -104,10 +103,6 @@ def sensor():
             sensor_data['scd_co2'] = float(request.form['scd_co2'])
             sensor_data['scd_temp'] = float(request.form['scd_temp'])
             sensor_data['scd_hum'] = float(request.form['scd_hum'])
-            sensor_data['bme_temp'] = float(request.form['bme_temp'])
-            sensor_data['bme_gas'] = float(request.form['bme_gas'])
-            sensor_data['bme_hum'] = float(request.form['bme_hum'])
-            sensor_data['bme_pressure'] = float(request.form['bme_pressure'])
             sensor_data['pm25_env'] = int(request.form['pm25_env'])
             sensor_data['aq_25um'] = int(request.form['aq_25um'])
             return log_data(sensor_data)
@@ -121,16 +116,12 @@ def valid_password(password):
 def log_data(data):
     db = get_db()
     db.execute(
-        'INSERT INTO air_quality_log (scd_co2, scd_temp, scd_hum, bme_temp, bme_gas, bme_hum, bme_pressure, pm25_env, aq_25um) \
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO air_quality_log (scd_co2, scd_temp, scd_hum, pm25_env, aq_25um) \
+         VALUES (?, ?, ?, ?, ?)',
         (
             data['scd_co2'],
             data['scd_temp'],
             data['scd_hum'],
-            data['bme_temp'],
-            data['bme_gas'],
-            data['bme_hum'],
-            data['bme_pressure'],
             data['pm25_env'],
             data['aq_25um']
         ))
@@ -241,22 +232,6 @@ def scd_temp():
 def scd_hum():
     return nocache(plot_response("scd_hum"))
 
-@app.route("/bme_temp.png")
-def bme_temp():
-    return nocache(plot_response("bme_temp"))
-
-@app.route("/bme_gas.png")
-def bme_gas():
-    return nocache(plot_response("bme_gas"))
-
-@app.route("/bme_hum.png")
-def bme_hum():
-    return nocache(plot_response("bme_hum"))
-
-@app.route("/bme_pressure.png")
-def bme_pressure():
-    return nocache(plot_response("bme_pressure"))
-
 @app.route("/pm25_env.png")
 def pm25_env():
     return nocache(plot_response("pm25_env"))
@@ -267,12 +242,13 @@ def aq_25um():
 
 def plot_response(metric):
     con = sqlite3.connect("data/data.sqlite")
-    data = pd.read_sql_query(f"SELECT time, {metric} FROM air_quality_log WHERE CAST(strftime('%S', time) AS INTEGER) < 5 AND time > datetime('now', '-1 day')", con)
+    data = pd.read_sql_query(f"SELECT time, {metric} AS metric FROM air_quality_log WHERE time > datetime('now', '-1 day')", con)
     data['time'] = pd.to_datetime(data['time'], utc=True)
-
+    to_plot = data.groupby(data.time.dt.floor('min')).metric.median()
     fig = Figure()
     ax = fig.add_subplot()
-    data.plot(x = 'time', y = metric, ax = ax)
+    to_plot.plot(x = 'time', y = metric, ax = ax, label = metric)
+    ax.legend(loc = "best")
     ax.set_xlabel("")
     ax.set_ylabel("")
     ax.xaxis.set_major_formatter(DateFormatter('%H:%M', tz = timezone("America/New_York")))

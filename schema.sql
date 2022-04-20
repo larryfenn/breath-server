@@ -12,10 +12,6 @@ CREATE TABLE air_quality_log (
   scd_co2 REAL,
   scd_temp REAL,
   scd_hum REAL,
-  bme_temp REAL,
-  bme_gas REAL,
-  bme_hum REAL,
-  bme_pressure REAL,
   pm25_env INT,
   aq_25um INT
 );
