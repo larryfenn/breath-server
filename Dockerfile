@@ -10,4 +10,4 @@ RUN pip3 install -r requirements.txt
 
 COPY . .
 
-CMD waitress-serve --port=5000 --call app:create_app
+CMD waitress-serve --port=5000 --threads=32 --call app:create_app

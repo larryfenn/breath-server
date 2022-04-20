@@ -84,9 +84,11 @@ def frontpage():
 <div>
 <img src="/bme_gas.png"/>
 </div>
+<!--
 <div>
 <img src="/pm25_env.png"/>
 </div>
+-->
 <div>
 <img src="/aq_25um.png"/>
 </div>
