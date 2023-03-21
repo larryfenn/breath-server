@@ -95,38 +95,51 @@ def frontpage():
 </html>
 """
 
-@app.route("/sensor", methods=['GET', 'POST'])
+@app.route("/sensor", methods=['GET'])
 def sensor():
-    if request.method == 'POST':
-        if valid_password(request.form['password']):
-            sensor_data = dict()
-            sensor_data['scd_co2'] = float(request.form['scd_co2'])
-            sensor_data['scd_temp'] = float(request.form['scd_temp'])
-            sensor_data['scd_hum'] = float(request.form['scd_hum'])
-            sensor_data['pm25_env'] = int(request.form['pm25_env'])
-            sensor_data['aq_25um'] = int(request.form['aq_25um'])
-            return log_data(sensor_data)
-        else:
-            return Response(response = "Wrong password", status = "401")
-    return get_relay_state();
+    return get_relay_state()
 
-def valid_password(password):
-    return password == "fuck"
+@app.route("/sensors/8a93c7", methods=['POST'])
+def sensors_8a93c7():
+    sensor_data = dict()
+    sensor_data['id'] = '8a93c7'
+    sensor_data['rco2'] = int(request.json['rco2'])
+    sensor_data['pm02'] = int(request.json['pm02'])
+    sensor_data['tvoc_index'] = int(request.json['tvoc_index'])
+    sensor_data['nox_index'] = int(request.json['nox_index'])
+    sensor_data['atmp'] = float(request.json['atmp'])
+    sensor_data['rhum'] = int(request.json['rhum'])
+    return log_data(sensor_data, control = True)
 
-def log_data(data):
+@app.route("/sensors/dd58e7", methods=['POST'])
+def sensors_dd58e7():
+    sensor_data = dict()
+    sensor_data['id'] = 'dd58e7'
+    sensor_data['rco2'] = int(request.json['rco2'])
+    sensor_data['pm02'] = int(request.json['pm02'])
+    sensor_data['tvoc_index'] = int(request.json['tvoc_index'])
+    sensor_data['nox_index'] = int(request.json['nox_index'])
+    sensor_data['atmp'] = float(request.json['atmp'])
+    sensor_data['rhum'] = int(request.json['rhum'])
+    return log_data(sensor_data, control = False)
+
+def log_data(data, control):
     db = get_db()
     db.execute(
-        'INSERT INTO air_quality_log (scd_co2, scd_temp, scd_hum, pm25_env, aq_25um) \
-         VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO air_quality_log (id, rco2, pm02, tvoc_index, nox_index, atmp, rhum) \
+         VALUES (?, ?, ?, ?, ?, ?, ?)',
         (
-            data['scd_co2'],
-            data['scd_temp'],
-            data['scd_hum'],
-            data['pm25_env'],
-            data['aq_25um']
+            data['id'],
+            data['rco2'],
+            data['pm02'],
+            data['tvoc_index'],
+            data['nox_index'],
+            data['atmp'],
+            data['rhum']
         ))
     db.commit()
-    set_relay_state(data)
+    if control:
+        set_relay_state(data)
     return get_relay_state()
 
 def set_relay_state(data):
@@ -138,7 +151,7 @@ def set_relay_state(data):
         return
     # Relay on logic goes here:
     relay_on = False
-    if data['pm25_env'] > 5:
+    if data['pm02'] > 5:
         relay_on = True
 
 
@@ -199,15 +212,22 @@ def control():
     override = state['override']
     relay_state = "On" if state['relay_state'] == 1 else "Off"
 
-    sensor_data = query_db(
-        'SELECT max(time) as time, pm25_env, scd_co2 \
-           FROM air_quality_log', one = True)
-    time_formatted = timezone('UTC').localize(datetime.strptime(sensor_data['time'], '%Y-%m-%d %H:%M:%S')).astimezone(timezone('America/New_York')).strftime('%Y-%m-%d %H:%M:%S %Z%z')
-    data_formatted = f"{time_formatted} PM 2.5: {sensor_data['pm25_env']} CO2: {sensor_data['scd_co2']}"
+    bedroom_data = query_db(
+        'SELECT max(time) as time, pm02, rco2 \
+           FROM air_quality_log \
+          WHERE id = "dd58e7"', one = True)
+    main_room_data = query_db(
+        'SELECT max(time) as time, pm02, rco2 \
+           FROM air_quality_log \
+          WHERE id = "8a93c7"', one = True)
+    bedroom_time_formatted = timezone('UTC').localize(datetime.strptime(bedroom_data['time'], '%Y-%m-%d %H:%M:%S')).astimezone(timezone('America/New_York')).strftime('%Y-%m-%d %H:%M:%S %Z%z')
+    main_room_time_formatted = timezone('UTC').localize(datetime.strptime(main_room_data['time'], '%Y-%m-%d %H:%M:%S')).astimezone(timezone('America/New_York')).strftime('%Y-%m-%d %H:%M:%S %Z%z')
+    bedroom_data_formatted = f"{bedroom_time_formatted} PM 2.5: {bedroom_data['pm02']} CO2: {bedroom_data['rco2']}"
+    main_room_data_formatted = f"{main_room_time_formatted} PM 2.5: {main_room_data['pm02']} CO2: {main_room_data['rco2']}"
     no_override = "checked" if override == 0 else ""
     override_off = "checked" if override == 1 else ""
     override_on = "checked" if override == 2 else ""
-    page = f'''Last observation: {data_formatted}<br>
+    page = f'''Last observation:<br>Bedroom: {bedroom_data_formatted}<br>Main room: {main_room_data_formatted}<br>
 Current relay state: {relay_state}
 <form method="post">
     <input type="radio" id="no_override" name="override" value="0" {no_override}>

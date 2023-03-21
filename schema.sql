@@ -9,11 +9,13 @@ CREATE TABLE state (
 
 CREATE TABLE air_quality_log (
   time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  scd_co2 REAL,
-  scd_temp REAL,
-  scd_hum REAL,
-  pm25_env INT,
-  aq_25um INT
+  id TEXT,
+  rco2 INT,
+  pm02 INT,
+  tvoc_index INT,
+  nox_index INT,
+  atmp REAL,
+  rhum INT
 );
 
 INSERT INTO state (override, relay_state)
