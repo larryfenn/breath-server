@@ -7,6 +7,7 @@
 # favicon
 # what to do with title page
 
+import sys
 from flask import Flask, Response
 from flask import request
 from flask import g
@@ -15,6 +16,7 @@ import sqlite3
 from datetime import datetime
 from pytz import timezone
 from io import BytesIO
+import numpy as np
 import pandas as pd
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -76,19 +78,16 @@ def frontpage():
   <body>
     <div class="flex-container" >
       <div>
-        <img src="/scd_co2.png"/>
+        <img src="/rco2.png"/>
       </div>
       <div>
-        <img src="/scd_temp.png"/>
+        <img src="/atmp.png"/>
       </div>
       <div>
-        <img src="/scd_hum.png"/>
+        <img src="/rhum.png"/>
       </div>
       <div>
-        <img src="/pm25_env.png"/>
-      </div>
-      <div>
-        <img src="/aq_25um.png"/>
+        <img src="/pm02.png"/>
       </div>
     </div>
   </body>
@@ -240,38 +239,55 @@ Current relay state: {relay_state}
 </form>'''
     return page
 
-@app.route("/scd_co2.png")
-def scd_co2():
-    return nocache(plot_response("scd_co2"))
+@app.route("/rco2.png")
+def rco2():
+    return nocache(plot_response("rco2"))
 
-@app.route("/scd_temp.png")
-def scd_temp():
-    return nocache(plot_response("scd_temp"))
+@app.route("/atmp.png")
+def atmp():
+    return nocache(plot_response("atmp"))
 
-@app.route("/scd_hum.png")
-def scd_hum():
-    return nocache(plot_response("scd_hum"))
+@app.route("/rhum.png")
+def rhum():
+    return nocache(plot_response("rhum"))
 
-@app.route("/pm25_env.png")
-def pm25_env():
-    return nocache(plot_response("pm25_env"))
+@app.route("/pm02.png")
+def pm02():
+    return nocache(plot_response("pm02"))
 
-@app.route("/aq_25um.png")
-def aq_25um():
-    return nocache(plot_response("aq_25um"))
+@app.route("/tvoc_index.png")
+def tvoc_index():
+    return nocache(plot_response("tvoc_index"))
+
+@app.route("/nox_index.png")
+def nox_index():
+    return nocache(plot_response("nox_index"))
 
 def plot_response(metric):
+    units = {
+        'rco2': 'ppm',
+        'pm02': 'μg/m³',
+        'tvoc_index': '',
+        'nox_index': '',
+        'atmp': '°C',
+        'rhum': '%'}
     con = sqlite3.connect("data/data.sqlite")
-    data = pd.read_sql_query(f"SELECT time, {metric} AS metric FROM air_quality_log WHERE time > datetime('now', '-1 day')", con)
+    data = pd.read_sql_query(f"SELECT time, id, {metric} AS metric FROM air_quality_log WHERE time > datetime('now', '-1 day')", con)
     data['time'] = pd.to_datetime(data['time'], utc=True)
-    to_plot = data.groupby(data.time.dt.floor('min')).metric.median()
+    data['time'] = data.time.dt.floor('2min')
+    data['id'] = np.where(data['id'] == '8a93c7', 'Main', 'Bedroom')
+    to_plot = data.groupby(['id', 'time']).agg({'metric': 'mean'})
     fig = Figure()
     ax = fig.add_subplot()
-    ax.plot(to_plot.index, to_plot.values)
-    ax.set_xlabel("")
-    ax.set_ylabel("")
-    ax.xaxis.set_major_formatter(DateFormatter('%H:%M', tz = timezone("America/New_York")))
-    ax.legend([metric], loc = "best")
+    for id, df in to_plot.groupby(level = 0):
+        ax.plot(df.index.get_level_values('time').values,
+                df['metric'],
+                label = df.index.get_level_values('id').values[0])
+        ax.set_title(f"{metric} ({units[metric]})", loc = 'left')
+        ax.set_xlabel("")
+        ax.set_ylabel("")
+        ax.xaxis.set_major_formatter(DateFormatter('%H:%M', tz = timezone("America/New_York")))
+        ax.legend(frameon = True, loc = "best")
     img_bytes = BytesIO()
     FigureCanvas(fig).print_png(img_bytes)
     return Response(img_bytes.getvalue(), mimetype='image/png')
