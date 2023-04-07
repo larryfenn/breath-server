@@ -89,6 +89,12 @@ def frontpage():
       <div>
         <img src="/pm02.png"/>
       </div>
+      <div>
+        <img src="/tvoc_index.png"/>
+      </div>
+      <div>
+        <img src="/nox_index.png"/>
+      </div>
     </div>
   </body>
 </html>
@@ -267,14 +273,14 @@ def plot_response(metric):
     units = {
         'rco2': 'ppm',
         'pm02': 'μg/m³',
-        'tvoc_index': '',
-        'nox_index': '',
+        'tvoc_index': 'Gas Index',
+        'nox_index': 'Gas Index',
         'atmp': '°C',
         'rhum': '%'}
     con = sqlite3.connect("data/data.sqlite")
     data = pd.read_sql_query(f"SELECT time, id, {metric} AS metric FROM air_quality_log WHERE time > datetime('now', '-1 day')", con)
     data['time'] = pd.to_datetime(data['time'], utc=True)
-    data['time'] = data.time.dt.floor('2min')
+    data['time'] = data.time.dt.floor('min')
     data['id'] = np.where(data['id'] == '8a93c7', 'Main', 'Bedroom')
     to_plot = data.groupby(['id', 'time']).agg({'metric': 'mean'})
     fig = Figure()
