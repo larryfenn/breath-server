@@ -104,8 +104,14 @@ def frontpage():
 def sensor():
     return get_relay_state()
 
-@app.route("/sensors/8a93c7", methods=['POST'])
+@app.route("/sensors/8a93c7", methods=['GET', 'POST'])
 def sensors_8a93c7():
+    if request.method == 'GET':
+        data = query_db(
+            'SELECT max(time) as time, rco2 \
+               FROM air_quality_log \
+              WHERE id = "8a93c7"', one = True)
+        return str(data['rco2'])
     sensor_data = dict()
     sensor_data['id'] = '8a93c7'
     sensor_data['rco2'] = int(request.json['rco2'])
@@ -113,11 +119,17 @@ def sensors_8a93c7():
     sensor_data['tvoc_index'] = int(request.json['tvoc_index'])
     sensor_data['nox_index'] = int(request.json['nox_index'])
     sensor_data['atmp'] = float(request.json['atmp'])
-    sensor_data['rhum'] = int(request.json['rhum'])
+    sensor_data['rhum'] = float(request.json['rhum'])
     return log_data(sensor_data, control = True)
 
-@app.route("/sensors/dd58e7", methods=['POST'])
+@app.route("/sensors/dd58e7", methods=['GET', 'POST'])
 def sensors_dd58e7():
+    if request.method == 'GET':
+        data = query_db(
+            'SELECT max(time) as time, rco2 \
+               FROM air_quality_log \
+              WHERE id = "dd58e7"', one = True)
+        return str(data['rco2'])
     sensor_data = dict()
     sensor_data['id'] = 'dd58e7'
     sensor_data['rco2'] = int(request.json['rco2'])
@@ -125,7 +137,7 @@ def sensors_dd58e7():
     sensor_data['tvoc_index'] = int(request.json['tvoc_index'])
     sensor_data['nox_index'] = int(request.json['nox_index'])
     sensor_data['atmp'] = float(request.json['atmp'])
-    sensor_data['rhum'] = int(request.json['rhum'])
+    sensor_data['rhum'] = float(request.json['rhum'])
     return log_data(sensor_data, control = False)
 
 def log_data(data, control):
@@ -280,9 +292,9 @@ def plot_response(metric):
     con = sqlite3.connect("data/data.sqlite")
     data = pd.read_sql_query(f"SELECT time, id, {metric} AS metric FROM air_quality_log WHERE time > datetime('now', '-1 day')", con)
     data['time'] = pd.to_datetime(data['time'], utc=True)
-    data['time'] = data.time.dt.floor('min')
+    data['time'] = data.time.dt.floor('3min')
     data['id'] = np.where(data['id'] == '8a93c7', 'Main', 'Bedroom')
-    to_plot = data.groupby(['id', 'time']).agg({'metric': 'mean'})
+    to_plot = data.groupby(['id', 'time']).agg({'metric': 'median'})
     fig = Figure()
     ax = fig.add_subplot()
     for id, df in to_plot.groupby(level = 0):

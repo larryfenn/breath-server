@@ -15,7 +15,7 @@ CREATE TABLE air_quality_log (
   tvoc_index INT,
   nox_index INT,
   atmp REAL,
-  rhum INT
+  rhum REAL
 );
 
 INSERT INTO state (override, relay_state)
