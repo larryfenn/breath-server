@@ -18,5 +18,7 @@ CREATE TABLE air_quality_log (
   rhum REAL
 );
 
+CREATE INDEX idx_timestamp ON air_quality_log (timestamp);
+
 INSERT INTO state (override, relay_state)
-VALUES(0, 0)
+VALUES(0, 0);
