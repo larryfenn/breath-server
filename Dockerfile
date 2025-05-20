@@ -10,4 +10,4 @@ RUN pip3 install -r requirements.txt
 
 COPY . .
 
-CMD waitress-serve --port=80 --threads=32 --call app:create_app
+CMD uwsgi --http 0.0.0.0:80 --master -p 8 --file app.py --callable app --disable-logging --log-4xx --log-5xx
