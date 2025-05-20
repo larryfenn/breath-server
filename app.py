@@ -8,6 +8,7 @@
 # what to do with title page
 
 import sys
+import requests as rq
 from flask import Flask, Response
 from flask import request
 from flask import g
@@ -18,12 +19,19 @@ from pytz import timezone
 from io import BytesIO
 import numpy as np
 import pandas as pd
+from pandas import DataFrame
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.dates import DateFormatter
 
 DATABASE = 'data/data.sqlite'
 app = Flask(__name__)
+
+def start_fan():
+  rq.get(f'http://192.168.1.195/rpc/Switch.Set?id=0&on=true')
+
+def stop_fan():
+  rq.get(f'http://192.168.1.195/rpc/Switch.Set?id=0&on=false')
 
 def create_app():
     return app
@@ -58,6 +66,7 @@ def close_connection(exception):
     db = getattr(g, '_database', None)
     if db is not None:
         db.close()
+        g.pop('_database')
 
 @app.route("/")
 def frontpage():
@@ -141,20 +150,20 @@ def sensors_dd58e7():
     return log_data(sensor_data, control = False)
 
 def log_data(data, control):
-    db = get_db()
-    db.execute(
-        'INSERT INTO air_quality_log (id, rco2, pm02, tvoc_index, nox_index, atmp, rhum) \
-         VALUES (?, ?, ?, ?, ?, ?, ?)',
-        (
-            data['id'],
-            data['rco2'],
-            data['pm02'],
-            data['tvoc_index'],
-            data['nox_index'],
-            data['atmp'],
-            data['rhum']
-        ))
-    db.commit()
+    with get_db() as db:
+        db.execute(
+            'INSERT INTO air_quality_log (id, rco2, pm02, tvoc_index, nox_index, atmp, rhum) \
+             VALUES (?, ?, ?, ?, ?, ?, ?)',
+            (
+                data['id'],
+                data['rco2'],
+                data['pm02'],
+                data['tvoc_index'],
+                data['nox_index'],
+                data['atmp'],
+                data['rhum']
+            ))
+        db.commit()
     if control:
         set_relay_state(data)
     return get_relay_state()
@@ -167,19 +176,30 @@ def set_relay_state(data):
     if override > 0:
         return
     # Relay on logic goes here:
-    relay_on = False
-    if data['pm02'] > 5:
-        relay_on = True
+    relay_state = 'unchanged'
+    if data['pm02'] > 10:
+        relay_state = 'on'
+    if data['pm02'] <= 5:
+        relay_state = 'off'
 
 
     # End relay logic
-    if relay_on:
+    if relay_state == 'on':
         db = get_db()
         db.execute(
             'INSERT INTO state (override, relay_state) \
              VALUES (0, 1)'
         )
         db.commit()
+        start_fan()
+    if relay_state == 'off':
+        db = get_db()
+        db.execute(
+            'INSERT INTO state (override, relay_state) \
+             VALUES (0, 0)'
+        )
+        db.commit()
+        stop_fan()
 
 def get_relay_state():
     state = query_db(
@@ -206,23 +226,25 @@ def control():
     if request.method == 'POST':
         # read checkbox state and commit that as relay state
         override = int(request.form.get('override'))
-        db = get_db()
-        if override == 1:
-            db.execute(
-                'INSERT INTO state (override, relay_state) \
-                 VALUES (1, 0)'
-            )
-        elif override == 2:
-            db.execute(
-                'INSERT INTO state (override, relay_state) \
-                 VALUES (2, 1)'
-            )
-        else:
-            db.execute(
-                f'INSERT INTO state (override, relay_state) \
-                  VALUES (0, {relay_state})'
-            )
-        db.commit()
+        with get_db() as db:
+            if override == 1:
+                db.execute(
+                    'INSERT INTO state (override, relay_state) \
+                     VALUES (1, 0)'
+                )
+                stop_fan()
+            elif override == 2:
+                db.execute(
+                    'INSERT INTO state (override, relay_state) \
+                     VALUES (2, 1)'
+                )
+                start_fan()
+            else:
+                db.execute(
+                    f'INSERT INTO state (override, relay_state) \
+                      VALUES (0, {relay_state})'
+                )
+            db.commit()
     state = query_db(
         'SELECT max(time), override, relay_state \
            FROM state', one = True)
@@ -287,14 +309,16 @@ def plot_response(metric):
         'pm02': 'μg/m³',
         'tvoc_index': 'Gas Index',
         'nox_index': 'Gas Index',
-        'atmp': '°C',
+        'atmp': '°F',
         'rhum': '%'}
-    con = sqlite3.connect("data/data.sqlite")
-    data = pd.read_sql_query(f"SELECT time, id, {metric} AS metric FROM air_quality_log WHERE time > datetime('now', '-1 day')", con)
+    with get_db() as db:
+        data = pd.read_sql_query(f"SELECT time, id, {metric} AS metric FROM air_quality_log WHERE time > datetime('now', '-1 day')", db)
     data['time'] = pd.to_datetime(data['time'], utc=True)
     data['time'] = data.time.dt.floor('3min')
     data['id'] = np.where(data['id'] == '8a93c7', 'Main', 'Bedroom')
     to_plot = data.groupby(['id', 'time']).agg({'metric': 'median'})
+    if metric == "atmp":
+        to_plot['metric'] = 32 + to_plot['metric'] * 9 / 5
     fig = Figure()
     ax = fig.add_subplot()
     for id, df in to_plot.groupby(level = 0):
